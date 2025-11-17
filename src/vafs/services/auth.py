@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-from tokenize import group
 
 from fastapi import HTTPException, status, Depends
 from fastapi.security import OAuth2PasswordBearer
@@ -9,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from src.vafs.database import get_session
-from src.vafs.models.auth import User, Token, UserCreate, PrivateUser
+from src.vafs.models.auth import User, UserCreate, PrivateUser
 from src.vafs.settings import settings
 from jose import jwt, JWTError
 from src.vafs import tables
