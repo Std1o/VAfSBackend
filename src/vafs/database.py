@@ -1,6 +1,6 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from settings import settings
+from src.vafs.settings import settings
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
 

@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from tokenize import group
 
 from fastapi import HTTPException, status, Depends
 from fastapi.security import OAuth2PasswordBearer
@@ -7,11 +8,11 @@ from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ..database import get_session
-from ..models.auth import User, Token, UserCreate, PrivateUser
-from ..settings import settings
+from src.vafs.database import get_session
+from src.vafs.models.auth import User, Token, UserCreate, PrivateUser
+from src.vafs.settings import settings
 from jose import jwt, JWTError
-from .. import tables
+from src.vafs import tables
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/auth/sign-in')
 
@@ -78,6 +79,7 @@ class AuthService:
         user = tables.User(
             email=user_data.email,
             username=user_data.username,
+            group = "-",
             password_hash=self.hash_password(user_data.password))
         self.session.add(user)
         self.session.commit()
@@ -86,6 +88,7 @@ class AuthService:
         return PrivateUser(email=created_user.email,
                            username=created_user.username,
                            id=created_user.id,
+                           group=user.group,
                            access_token=token)
 
     def auth(self, email: str, password: str) -> PrivateUser:
@@ -96,7 +99,9 @@ class AuthService:
                 'WWW-Authenticate': 'Bearer'
             }
         )
+        print("Tada")
         user = self.session.query(tables.User).filter_by(email=email).first()
+        print(user)
         if not user:
             raise exception
         if not self.verify_password(password, user.password_hash):
@@ -104,5 +109,6 @@ class AuthService:
         token = self.create_token(user)
         return PrivateUser(email=user.email,
                            username=user.username,
+                           group=user.group,
                            id=user.id,
                            access_token=token)

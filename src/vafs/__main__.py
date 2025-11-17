@@ -1,9 +1,9 @@
 import uvicorn
-from settings import settings
+from src.vafs.settings import settings
 
 
 def main():
-    uvicorn.run('app:app',
+    uvicorn.run('src.vafs.app:app',
                 host=settings.server_host,
                 port=settings.server_port,
                 reload=True)

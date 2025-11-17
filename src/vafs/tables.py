@@ -12,3 +12,4 @@ class User(Base):
     email = sa.Column(sa.Text, unique=True)
     username = sa.Column(sa.Text)
     password_hash = sa.Column(sa.Text)
+    group = sa.Column(sa.Text)

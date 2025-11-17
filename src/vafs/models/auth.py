@@ -9,6 +9,7 @@ class UserCreate(BaseUser):
 
 class User(BaseUser):
     id: int
+    group: str
 
     class Config:
         from_attributes = True
@@ -21,6 +22,7 @@ class PrivateUser(BaseUser):
     id: int
     access_token: str
     token_type: str = 'bearer'
+    group: str
 
     class Config:
         from_attributes = True
