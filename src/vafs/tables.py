@@ -13,3 +13,10 @@ class User(Base):
     username = sa.Column(sa.Text)
     password_hash = sa.Column(sa.Text)
     group = sa.Column(sa.Text)
+
+class Event(Base):
+    __tablename__ = 'events'
+    id = sa.Column(sa.Integer, primary_key=True)
+    user_id = sa.Column(sa.Integer, sa.ForeignKey(User.id))
+    title = sa.Column(sa.Text)
+    date = sa.Column(sa.Text)
