@@ -125,7 +125,7 @@ class ChatBot:
             datetime.strptime(message, "%d.%m.%Y")
             events = storage.get_events_by_date(message)
 
-            await self.send_response(websocket, "schedule_result", "")
+            await self.send_response(websocket, "schedule_result", message)
             state["mode"] = None
 
         except ValueError:
