@@ -80,7 +80,7 @@ class ChatBot:
             await self.handle_schedule(websocket, message, state, user_id)
         # Режим заметки
         elif state["mode"] == "note":
-            await self.handle_note(websocket, message, state, user_id)
+            await self.handle_note(websocket=websocket, message=message, state=state, user_id=user_id, note_service=note_service)
         # Режим календаря
         elif state["mode"] == "calendar":
             await self.handle_calendar(websocket, message, state, user_id, event_service)
@@ -101,8 +101,8 @@ class ChatBot:
             state["step"] = "title"
             await self.send_response(
                 websocket,
-                "note_title",
-                'Назовите заголовок события:\nЕсли хотите отменить опцию, напишите "назад"'
+                "note",
+                'Назовите заголовок заметки:\nЕсли хотите отменить опцию, напишите "назад"'
             )
 
         elif any(word in message_lower for word in ["календарь", "календаре", "календарём"]):
