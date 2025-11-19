@@ -7,8 +7,10 @@ from starlette import status
 
 from src.vafs.models.chat import ChatItem
 from src.vafs.models.event import BaseEvent
+from src.vafs.models.note import BaseNote
 from src.vafs.services.auth import get_current_user
 from src.vafs.services.events import EventService
+from src.vafs.services.notes import NotesService
 
 router = APIRouter()
 
@@ -52,7 +54,8 @@ class ChatBot:
         }
         await websocket.send_json(response)
 
-    async def handle_message(self, websocket: WebSocket, message: str, user_id: int, event_service: EventService):
+    async def handle_message(self, websocket: WebSocket, message: str, user_id: int, event_service: EventService,
+                             note_service: NotesService):
         # Инициализация состояния пользователя
         if user_id not in self.states:
             self.states[user_id] = {"mode": None}
@@ -137,7 +140,8 @@ class ChatBot:
                 'Неверный формат даты. Используйте формат "01.01.2025"\nЕсли хотите отменить опцию, напишите "назад"'
             )
 
-    async def handle_note(self, websocket: WebSocket, message: str, state: Dict, user_id: int):
+    async def handle_note(self, websocket: WebSocket, message: str, state: Dict, user_id: int,
+                          note_service: NotesService):
         step = state.get("step")
 
         if step == "title":
@@ -151,7 +155,7 @@ class ChatBot:
 
         elif step == "description":
             state["description"] = message
-            storage.add_note(state["title"], state["description"])
+            note_service.create(user_id, BaseNote(title=state["title"], description=state["description"]))
 
             await self.send_response(
                 websocket,
@@ -164,7 +168,8 @@ class ChatBot:
             if "description" in state: del state["description"]
             if "step" in state: del state["step"]
 
-    async def handle_calendar(self, websocket: WebSocket, message: str, state: Dict, user_id: int, event_service: EventService):
+    async def handle_calendar(self, websocket: WebSocket, message: str, state: Dict, user_id: int,
+                              event_service: EventService):
         step = state.get("step")
 
         if step == "ask_add_event":
@@ -206,7 +211,6 @@ class ChatBot:
         elif step == "event":
             state["event"] = message
             event_service.create(user_id, BaseEvent(title=state["event"], date=state["date"]))
-            storage.add_event(state["date"], state["event"])
             state["step"] = "ask_open"
             await self.send_response(
                 websocket,
@@ -234,7 +238,8 @@ chat_bot = ChatBot()
 
 
 @router.websocket("/chat")
-async def send_message(websocket: WebSocket, event_service: EventService = Depends()):
+async def send_message(websocket: WebSocket, event_service: EventService = Depends(),
+                       note_service: NotesService = Depends()):
     await websocket.accept()
     user = None
     try:
@@ -247,7 +252,7 @@ async def send_message(websocket: WebSocket, event_service: EventService = Depen
 
         while True:
             data = await websocket.receive_text()
-            await chat_bot.handle_message(websocket, data, user.id, event_service)
+            await chat_bot.handle_message(websocket, data, user.id, event_service, note_service)
     except WebSocketDisconnect:
         print(f"WebSocket connection closed")
     except Exception as e:
