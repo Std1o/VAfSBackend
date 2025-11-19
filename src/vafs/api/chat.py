@@ -1,12 +1,14 @@
 from datetime import datetime
 from typing import Dict, List
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from fastapi import WebSocket, WebSocketDisconnect
 from starlette import status
 
 from src.vafs.models.chat import ChatItem
+from src.vafs.models.event import BaseEvent
 from src.vafs.services.auth import get_current_user
+from src.vafs.services.events import EventService
 
 router = APIRouter()
 
@@ -50,7 +52,7 @@ class ChatBot:
         }
         await websocket.send_json(response)
 
-    async def handle_message(self, websocket: WebSocket, message: str, user_id: int):
+    async def handle_message(self, websocket: WebSocket, message: str, user_id: int, event_service: EventService):
         # Инициализация состояния пользователя
         if user_id not in self.states:
             self.states[user_id] = {"mode": None}
@@ -78,7 +80,7 @@ class ChatBot:
             await self.handle_note(websocket, message, state, user_id)
         # Режим календаря
         elif state["mode"] == "calendar":
-            await self.handle_calendar(websocket, message, state, user_id)
+            await self.handle_calendar(websocket, message, state, user_id, event_service)
 
     async def handle_main_menu(self, websocket: WebSocket, message: str, state: Dict, user_id: int):
         message_lower = message.lower()
@@ -162,7 +164,7 @@ class ChatBot:
             if "description" in state: del state["description"]
             if "step" in state: del state["step"]
 
-    async def handle_calendar(self, websocket: WebSocket, message: str, state: Dict, user_id: int):
+    async def handle_calendar(self, websocket: WebSocket, message: str, state: Dict, user_id: int, event_service: EventService):
         step = state.get("step")
 
         if step == "ask_add_event":
@@ -203,6 +205,7 @@ class ChatBot:
 
         elif step == "event":
             state["event"] = message
+            event_service.create(user_id, BaseEvent(title=state["event"], date=state["date"]))
             storage.add_event(state["date"], state["event"])
             state["step"] = "ask_open"
             await self.send_response(
@@ -213,10 +216,9 @@ class ChatBot:
 
         elif step == "ask_open":
             if message.lower() == "да":
-                events = storage.get_events_by_date(state["date"])
-                if events:
-                    events_text = "\n".join([f"- {event['event']}" for event in events])
-                    response_message = f"События на {state['date']}:\n{events_text}"
+                event = event_service.get_last_event(user_id)
+                if event:
+                    response_message = event.date
                 else:
                     response_message = f"На {state['date']} событий нет."
                 await self.send_response(websocket, "calendar_result", response_message)
@@ -232,7 +234,7 @@ chat_bot = ChatBot()
 
 
 @router.websocket("/chat")
-async def send_message(websocket: WebSocket):
+async def send_message(websocket: WebSocket, event_service: EventService = Depends()):
     await websocket.accept()
     user = None
     try:
@@ -245,7 +247,7 @@ async def send_message(websocket: WebSocket):
 
         while True:
             data = await websocket.receive_text()
-            await chat_bot.handle_message(websocket, data, user.id)
+            await chat_bot.handle_message(websocket, data, user.id, event_service)
     except WebSocketDisconnect:
         print(f"WebSocket connection closed")
     except Exception as e:
