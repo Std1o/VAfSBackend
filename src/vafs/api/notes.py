@@ -17,6 +17,10 @@ router = APIRouter(prefix='/notes')
 def get_notes(user: User = Depends(get_current_user), service: NotesService = Depends()):
     return service.get_notes(user.id)
 
+@router.get('/get_note', response_model=Note)
+def get_note(note_id: int, user: User = Depends(get_current_user), service: NotesService = Depends()):
+    return service.get_note(note_id)
+
 @router.post('/create_note', response_model=Note)
 def create_note(note: BaseNote, user: User = Depends(get_current_user), service: NotesService = Depends()):
     return service.create(user.id, note)
