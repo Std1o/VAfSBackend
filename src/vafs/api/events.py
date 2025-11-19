@@ -21,5 +21,5 @@ def get_event(event_id: int, user: User = Depends(get_current_user), service: Ev
     return service.get_event(event_id)
 
 @router.get('/get_events', response_model=List[Event])
-def get_event(user: User = Depends(get_current_user), service: EventService = Depends()):
+def get_events(user: User = Depends(get_current_user), service: EventService = Depends()):
     return service.get_events(user.id)
