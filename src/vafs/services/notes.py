@@ -37,7 +37,7 @@ class NotesService:
         )
         self.session.execute(stmt)
         self.session.commit()
-        self.session.expire_all()
         note = self.session.query(tables.Note).filter(tables.Note.id == note.id).first()
+        self.session.expire_all()
         return note
 
