@@ -238,12 +238,21 @@ chat_bot = ChatBot()
 
 
 @router.websocket("/chat")
-async def send_message(websocket: WebSocket):
+async def send_message(websocket: WebSocket, event_service: EventService = Depends(),
+                       note_service: NotesService = Depends()):
     await websocket.accept()
     user = None
     try:
+        token = websocket.headers.get("Authorization")
+        if not token or not token.startswith("Bearer "):
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or missing token")
+
+        token = token.split(" ")[1]  # Убираем "Bearer"
+        user = get_current_user(token)
+
         while True:
-            pass
+            data = await websocket.receive_text()
+            await chat_bot.handle_message(websocket, data, user.id, event_service, note_service)
     except WebSocketDisconnect:
         print(f"WebSocket connection closed")
     except Exception as e:
